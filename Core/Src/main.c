@@ -20,15 +20,16 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stdbool.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 void toggleBankAndReset() {
     FLASH_OBProgramInitTypeDef OBInit;
+    // get without locking flash should be possible
     HAL_FLASH_Unlock();
     __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
     HAL_FLASH_OB_Unlock();
-
     HAL_FLASHEx_OBGetConfig(&OBInit);
 
     OBInit.OptionType = OPTIONBYTE_USER;
@@ -82,9 +83,37 @@ uint8_t getActiveBank() {
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+#define NUM_PAGES 100
+
 /* USER CODE BEGIN PTD */
 void HAL_GPIO_EXTI_Callback(uint16_t pin) {
     if (pin == GPIO_PIN_13) {
+
+        if (getActiveBank() == 2) {
+            toggleBankAndReset();
+            return;
+        }
+        FLASH_EraseInitTypeDef erase = { 0 };
+        erase.TypeErase = FLASH_TYPEERASE_PAGES;
+        erase.Banks = FLASH_BANK_2;
+        erase.NbPages = NUM_PAGES;
+        erase.Page = 0;
+
+        HAL_FLASH_Unlock();
+        uint32_t error;
+        HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&erase, &error);
+        if (status != HAL_OK) {
+            return;
+        }
+
+        uint8_t *src = (uint8_t*)0x08000000;
+
+#define NUM_BYTES       NUM_PAGES * FLASH_PAGE_SIZE
+#define NUM_DOUBLEWORDS NUM_BYTES / 8
+        for (size_t index = 0; index < NUM_DOUBLEWORDS; index++) {
+            uint64_t doubleword = *(uint64_t*)(src + (index * 8));
+            HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, 0x08040000 + index * 8, doubleword);
+        }
         toggleBankAndReset();
     }
 }
