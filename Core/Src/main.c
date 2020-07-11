@@ -26,7 +26,6 @@
 /* USER CODE BEGIN Includes */
 void toggleBankAndReset() {
     FLASH_OBProgramInitTypeDef OBInit;
-    // get without locking flash should be possible
     HAL_FLASH_Unlock();
     __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
     HAL_FLASH_OB_Unlock();
@@ -60,9 +59,6 @@ void toggleBankAndReset() {
 
 uint8_t getActiveBank() {
     FLASH_OBProgramInitTypeDef OBInit;
-    HAL_FLASH_Unlock();
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
-    HAL_FLASH_OB_Unlock();
 
     HAL_FLASHEx_OBGetConfig(&OBInit);
 
@@ -75,8 +71,6 @@ uint8_t getActiveBank() {
     } else {
     	result = 1;
     }
-    HAL_FLASH_OB_Lock();
-    HAL_FLASH_Lock();
     return result;
 }
 
