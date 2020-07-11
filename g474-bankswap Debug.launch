@@ -23,7 +23,7 @@
 <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.enable_external_loader" value="false"/>
 <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.enable_logging" value="false"/>
 <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.enable_max_halt_delay" value="false"/>
-<booleanAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.enable_shared_stlink" value="false"/>
+<booleanAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.enable_shared_stlink" value="true"/>
 <stringAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.external_loader" value=""/>
 <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.external_loader_init" value="false"/>
 <stringAttribute key="com.st.stm32cube.ide.mcu.debug.stlink.frequency" value="0"/>

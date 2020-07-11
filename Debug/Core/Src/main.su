@@ -1,8 +1,8 @@
 main.c:27:6:toggleBankAndReset	64	static
-main.c:61:9:getActiveBank	64	static
-main.c:84:6:HAL_GPIO_EXTI_Callback	72	static
-main.c:151:5:main	16	static
-main.c:201:6:SystemClock_Config	168	static
-main.c:254:13:MX_LPUART1_UART_Init	8	static
-main.c:300:13:MX_GPIO_Init	48	static
-main.c:340:6:Error_Handler	4	static
+main.c:60:9:getActiveBank	64	static
+main.c:83:6:HAL_GPIO_EXTI_Callback	72	static
+main.c:155:5:main	16	static
+main.c:205:6:SystemClock_Config	168	static
+main.c:258:13:MX_LPUART1_UART_Init	8	static
+main.c:304:13:MX_GPIO_Init	48	static
+main.c:344:6:Error_Handler	4	static

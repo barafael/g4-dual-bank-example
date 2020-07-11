@@ -83,13 +83,10 @@ uint8_t getActiveBank() {
 void HAL_GPIO_EXTI_Callback(uint16_t pin) {
     if (pin == GPIO_PIN_13) {
 
-        if (getActiveBank() == 2) {
-            toggleBankAndReset();
-            return;
-        }
+        uint8_t bank = getActiveBank();
         FLASH_EraseInitTypeDef erase = { 0 };
         erase.TypeErase = FLASH_TYPEERASE_PAGES;
-        erase.Banks = FLASH_BANK_2;
+        erase.Banks = bank == 1 ? FLASH_BANK_2 : FLASH_BANK_1;
         erase.NbPages = NUM_PAGES;
         erase.Page = 0;
 
@@ -100,13 +97,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
             return;
         }
 
+        uint32_t dest = 0x08040000;
         uint8_t *src = (uint8_t*)0x08000000;
 
 #define NUM_BYTES       NUM_PAGES * FLASH_PAGE_SIZE
 #define NUM_DOUBLEWORDS NUM_BYTES / 8
         for (size_t index = 0; index < NUM_DOUBLEWORDS; index++) {
             uint64_t doubleword = *(uint64_t*)(src + (index * 8));
-            HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, 0x08040000 + index * 8, doubleword);
+            HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, dest + index * 8, doubleword);
         }
         toggleBankAndReset();
     }
