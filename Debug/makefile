@@ -40,8 +40,8 @@ g474-bankswap.bin \
 all: g474-bankswap.elf secondary-outputs
 
 # Tool invocations
-g474-bankswap.elf: $(OBJS) $(USER_OBJS) /home/ra/STM32CubeIDE/workspace_1.3.0/g474-bankswap/STM32G474RETX_FLASH.ld
-	arm-none-eabi-gcc -o "g474-bankswap.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/ra/STM32CubeIDE/workspace_1.3.0/g474-bankswap/STM32G474RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="g474-bankswap.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+g474-bankswap.elf: $(OBJS) $(USER_OBJS) /home/ra/g4-dual-bank-example/STM32G474RETX_FLASH.ld
+	arm-none-eabi-gcc -o "g474-bankswap.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/ra/g4-dual-bank-example/STM32G474RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="g474-bankswap.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

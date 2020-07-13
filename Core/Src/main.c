@@ -1,29 +1,98 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stdbool.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+#include "stdbool.h"
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+typedef enum {
+    NONE,
+    PREPARATION,
+    FLASH_ERASING,
+    FLASH_ERASE_DONE,
+    FLASH_WRITE_IN_PROGRESS,
+    FLASH_WRITE_DONE,
+    UPDATE_DONE,
+} updateState_t;
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+// Number of pages for firmware
+#define NUM_PAGES 100
+
+// Number of bytes for firmware
+#define NUM_BYTES       NUM_PAGES * FLASH_PAGE_SIZE
+
+// Number of double words (64 bits) for firmware
+#define NUM_DOUBLEWORDS NUM_BYTES / 8
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+
+volatile updateState_t updateState = NONE;
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t pin) {
+    if (pin == GPIO_PIN_13) {
+        updateState = PREPARATION;
+    }
+
+}
+
+void HAL_FLASH_EndOfOperationCallback(uint32_t ReturnValue) {
+    if (FLASH_ERASING && ReturnValue == 0xffffffff) {
+        updateState = FLASH_ERASE_DONE;
+    } else if (updateState == FLASH_WRITE_IN_PROGRESS) {
+        updateState = FLASH_WRITE_DONE;
+    }
+}
+
 void toggleBankAndReset() {
     FLASH_OBProgramInitTypeDef OBInit;
     HAL_FLASH_Unlock();
@@ -67,78 +136,12 @@ uint8_t getActiveBank() {
 
     uint8_t result;
     if (((OBInit.USERConfig) & (OB_BFB2_ENABLE)) == OB_BFB2_ENABLE) {
-    	result = 2;
+        result = 2;
     } else {
-    	result = 1;
+        result = 1;
     }
     return result;
 }
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-#define NUM_PAGES 100
-
-/* USER CODE BEGIN PTD */
-void HAL_GPIO_EXTI_Callback(uint16_t pin) {
-    if (pin == GPIO_PIN_13) {
-
-        uint8_t bank = getActiveBank();
-        FLASH_EraseInitTypeDef erase = { 0 };
-        erase.TypeErase = FLASH_TYPEERASE_PAGES;
-        erase.Banks = bank == 1 ? FLASH_BANK_2 : FLASH_BANK_1;
-        erase.NbPages = NUM_PAGES;
-        erase.Page = 0;
-
-        HAL_FLASH_Unlock();
-        uint32_t error;
-        HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&erase, &error);
-        if (status != HAL_OK) {
-            return;
-        }
-
-        uint32_t dest = 0x08040000;
-        uint8_t *src = (uint8_t*)0x08000000;
-
-#define NUM_BYTES       NUM_PAGES * FLASH_PAGE_SIZE
-#define NUM_DOUBLEWORDS NUM_BYTES / 8
-        for (size_t index = 0; index < NUM_DOUBLEWORDS; index++) {
-            uint64_t doubleword = *(uint64_t*)(src + (index * 8));
-            HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, dest + index * 8, doubleword);
-        }
-        toggleBankAndReset();
-    }
-}
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef hlpuart1;
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_LPUART1_UART_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -169,25 +172,77 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  uint8_t bank = getActiveBank();
+    uint8_t bank = getActiveBank();
+
+    uint32_t last = HAL_GetTick();
+    uint32_t delay;
+    if (bank == 1) {
+        delay = 1000;
+    } else {
+        delay = 500;
+    }
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    if (bank == 1) {
-        HAL_Delay(1000);
-    } else {
-        HAL_Delay(250);
-    }
+    while (1) {
+        uint32_t now = HAL_GetTick();
+        if (now - last > delay) {
+            HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+            last = now;
+        }
+        switch (updateState) {
+        case NONE:
+            break;
+        case PREPARATION: {
+            FLASH_EraseInitTypeDef erase = { 0 };
+            erase.TypeErase = FLASH_TYPEERASE_PAGES;
+            erase.Banks = bank == 1 ? FLASH_BANK_2 : FLASH_BANK_1;
+            erase.NbPages = NUM_PAGES;
+            erase.Page = 0;
+
+            HAL_FLASH_Unlock();
+            HAL_StatusTypeDef status = HAL_FLASHEx_Erase_IT(&erase);
+            if (status != HAL_OK) {
+                // TODO error case
+            }
+
+            updateState = FLASH_ERASING;
+        }
+            break;
+
+        case FLASH_ERASING:
+        case FLASH_WRITE_IN_PROGRESS:
+            delay = 200;
+            break;
+
+        case FLASH_ERASE_DONE:
+        case FLASH_WRITE_DONE: {
+            delay = 50;
+            static size_t index = 0;
+
+            uint32_t dest = 0x08040000;
+            uint8_t *src = (uint8_t*) 0x08000000;
+
+            if (index < NUM_DOUBLEWORDS) {
+                uint64_t doubleword = *(uint64_t*) (src + (index * 8));
+
+                updateState = FLASH_WRITE_IN_PROGRESS;
+                HAL_FLASH_Program_IT(FLASH_TYPEPROGRAM_DOUBLEWORD, dest + index * 8, doubleword); index++;
+            } else {
+                updateState = UPDATE_DONE;
+            }
+        }
+            break;
+        case UPDATE_DONE:
+            toggleBankAndReset();
+            break;
+        }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+    }
   /* USER CODE END 3 */
 }
 
@@ -199,7 +254,6 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Configure the main internal regulator output voltage 
   */
@@ -233,60 +287,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Initializes the peripherals clocks 
-  */
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1;
-  PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
-/**
-  * @brief LPUART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPUART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN LPUART1_Init 0 */
-
-  /* USER CODE END LPUART1_Init 0 */
-
-  /* USER CODE BEGIN LPUART1_Init 1 */
-
-  /* USER CODE END LPUART1_Init 1 */
-  hlpuart1.Instance = LPUART1;
-  hlpuart1.Init.BaudRate = 115200;
-  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
-  hlpuart1.Init.StopBits = UART_STOPBITS_1;
-  hlpuart1.Init.Parity = UART_PARITY_NONE;
-  hlpuart1.Init.Mode = UART_MODE_TX_RX;
-  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&hlpuart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&hlpuart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&hlpuart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN LPUART1_Init 2 */
-
-  /* USER CODE END LPUART1_Init 2 */
-
 }
 
 /**
@@ -313,6 +313,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : LPUART1_TX_Pin LPUART1_RX_Pin */
+  GPIO_InitStruct.Pin = LPUART1_TX_Pin|LPUART1_RX_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF12_LPUART1;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LD2_Pin */
   GPIO_InitStruct.Pin = LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -337,7 +345,7 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+    /* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */
 }
