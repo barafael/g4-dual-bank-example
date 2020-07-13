@@ -1,2 +1,0 @@
-stm32g4xx_ll_pwr.h:497:22:LL_PWR_DisableUCPDDeadBattery	4	static
-stm32g4xx_hal_msp.c:64:6:HAL_MspInit	16	static
