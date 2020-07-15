@@ -44,8 +44,6 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
 // Number of pages for firmware
 #define NUM_PAGES 100
 
@@ -54,6 +52,8 @@ typedef enum {
 
 // Number of double words (64 bits) for firmware
 #define NUM_DOUBLEWORDS NUM_BYTES / 8
+
+/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -80,7 +80,9 @@ static void MX_GPIO_Init(void);
 
 void HAL_GPIO_EXTI_Callback(uint16_t pin) {
     if (pin == GPIO_PIN_13) {
-        updateState = PREPARATION;
+        if (updateState == NONE) {
+            updateState = PREPARATION;
+        }
     }
 
 }
@@ -176,6 +178,7 @@ int main(void)
     uint8_t bank = getActiveBank();
 
     uint32_t last = HAL_GetTick();
+
     uint32_t delay;
     if (bank == 1) {
         delay = 1000;
@@ -229,12 +232,17 @@ int main(void)
                 uint64_t doubleword = *(uint64_t*) (src + (index * 8));
 
                 updateState = FLASH_WRITE_IN_PROGRESS;
-                HAL_FLASH_Program_IT(FLASH_TYPEPROGRAM_DOUBLEWORD, dest + index * 8, doubleword); index++;
+                HAL_FLASH_Program_IT(
+                        FLASH_TYPEPROGRAM_DOUBLEWORD,
+                        dest + index * 8,
+                        doubleword);
+                index++;
             } else {
                 updateState = UPDATE_DONE;
             }
         }
             break;
+
         case UPDATE_DONE:
             toggleBankAndReset();
             break;
