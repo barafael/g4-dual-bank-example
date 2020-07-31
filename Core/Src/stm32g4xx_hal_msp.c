@@ -77,9 +77,9 @@ void HAL_MspInit(void)
   HAL_NVIC_SetPriority(FLASH_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(FLASH_IRQn);
 
-  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral 
+  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
   */
-  LL_PWR_DisableDeadBatteryPD();
+  HAL_PWREx_DisableUCPDDeadBattery();
 
   /* USER CODE BEGIN MspInit 1 */
 
