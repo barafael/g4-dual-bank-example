@@ -129,20 +129,8 @@ void toggleBankAndReset() {
 }
 
 uint8_t getActiveBank() {
-    FLASH_OBProgramInitTypeDef OBInit;
-
-    HAL_FLASHEx_OBGetConfig(&OBInit);
-
-    OBInit.OptionType = OPTIONBYTE_USER;
-    OBInit.USERType = OB_USER_BFB2;
-
-    uint8_t result;
-    if (((OBInit.USERConfig) & (OB_BFB2_ENABLE)) == OB_BFB2_ENABLE) {
-        result = 2;
-    } else {
-        result = 1;
-    }
-    return result;
+    volatile uint32_t remap = READ_BIT(SYSCFG->MEMRMP, 0x1 << 8);
+    return remap == 0 ? 1 : 2;
 }
 /* USER CODE END 0 */
 
