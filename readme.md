@@ -10,6 +10,10 @@ There is a problem with the STM32 System Bootloader and the STM32CubeMX generate
 
 When erasing/writing to the 'other' bank (the bank mapped at 0x08040000), care must be taken to erase/write to the correct address, taking the address into account. Erase to the actual physical bank, write to the remapped address (see PC13 callback in main.c).
 
+# Challenge 3
+
+When using many peripherals, many interrupts, the core sometimes goes into a state which I cannot explain when erasing bank 1 from bank 2. Doing a full bank erase works without problems in this case.
+
 # Implementation
 
 All relevant implementation is in main.c (except for the small but crucial change in the linker file).
