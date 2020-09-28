@@ -87,7 +87,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
 }
 
 void HAL_FLASH_EndOfOperationCallback(uint32_t ReturnValue) {
-    if (updateState == FLASH_ERASING && ReturnValue == 0xffffffff) {
+    if (updateState == FLASH_ERASING && (ReturnValue == 1 || ReturnValue == 2)) {
         updateState = FLASH_ERASE_DONE;
     } else if (updateState == FLASH_WRITE_IN_PROGRESS) {
         updateState = FLASH_WRITE_DONE;
@@ -187,10 +187,11 @@ int main(void)
             break;
         case PREPARATION: {
             FLASH_EraseInitTypeDef erase = { 0 };
-            erase.TypeErase = FLASH_TYPEERASE_PAGES;
+            //erase.TypeErase = FLASH_TYPEERASE_PAGES;
+            erase.TypeErase = FLASH_TYPEERASE_MASSERASE;
             erase.Banks = bank == 1 ? FLASH_BANK_2 : FLASH_BANK_1;
-            erase.NbPages = NUM_PAGES;
-            erase.Page = 0;
+            //erase.NbPages = NUM_PAGES;
+            //erase.Page = 0;
 
             HAL_FLASH_Unlock();
             HAL_StatusTypeDef status = HAL_FLASHEx_Erase_IT(&erase);
