@@ -87,7 +87,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
 }
 
 void HAL_FLASH_EndOfOperationCallback(uint32_t ReturnValue) {
-    if (FLASH_ERASING && ReturnValue == 0xffffffff) {
+    if (updateState == FLASH_ERASING && ReturnValue == 0xffffffff) {
         updateState = FLASH_ERASE_DONE;
     } else if (updateState == FLASH_WRITE_IN_PROGRESS) {
         updateState = FLASH_WRITE_DONE;
