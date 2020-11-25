@@ -39,10 +39,49 @@ typedef enum {
     UPDATE_DONE,
 } updateState_t;
 
+#define SIZE 20
+uint8_t data[SIZE] = {
+        0x00, 0x11, 0x22, 0x33,
+        0x44, 0x55, 0x66, 0x77,
+        0x88, 0x99, 0xaa, 0xbb,
+        0xcc, 0xdd, 0xee, 0xff,
+        0xaa, 0xaa, 0xaa, 0xaa,
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+uint32_t pageError;
+
+bool setData(uint8_t *data, size_t length, uint32_t bank, uint32_t page, uint32_t address) {
+    HAL_FLASH_Unlock();
+    uint64_t *doubleword_data = (uint64_t *)data;
+    uint8_t remainder = length % sizeof(uint64_t);
+    if (remainder != 0) {
+        length -= remainder;
+    }
+    for (size_t index = 0; index < length / 8; index++) {
+        uint64_t doubleword = doubleword_data[index];
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address + (uint8_t)(index * 8), doubleword);
+    }
+    if (remainder != 0) {
+        uint64_t lastDoubleWord = 0;
+        for (size_t index = 0; index < sizeof(uint64_t); index++) {
+            if (index < remainder) {
+                lastDoubleWord |= data[length + index] << (index * 8u);
+            } else {
+                lastDoubleWord |= (uint64_t)0xFF << (index * 8u);
+            }
+        }
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address + length, lastDoubleWord);
+    }
+
+    HAL_FLASH_Lock();
+
+    return true;
+}
+
 // Number of pages for firmware
 #define NUM_PAGES 100
 
@@ -83,7 +122,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
             updateState = PREPARATION;
         }
     }
-
 }
 
 void HAL_FLASH_EndOfOperationCallback(uint32_t ReturnValue) {
@@ -182,6 +220,11 @@ int main(void)
             HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
             last = now;
         }
+        if (now > 10000) {
+            if (updateState == NONE) {
+                updateState = PREPARATION;
+            }
+        }
         switch (updateState) {
         case NONE:
             break;
@@ -231,9 +274,36 @@ int main(void)
         }
             break;
 
-        case UPDATE_DONE:
-            toggleBankAndReset();
-            break;
+        case UPDATE_DONE: {
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+				HAL_Delay(1000);
+				HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+				HAL_Delay(1000);
+				HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+				HAL_Delay(1000);
+				HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+				HAL_Delay(1000);
+				if (getActiveBank() == 1) {
+					//setData(data, SIZE, FLASH_BANK_2, 254, (uint32_t)0x0807F000);
+					uint64_t *doubleword_data = (uint64_t *)data;
+					for (size_t index = 0; index < SIZE / 8; index++) {
+						uint64_t doubleword = doubleword_data[index];
+						HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
+								0x0807F000 + (uint8_t)(index * 8),
+								doubleword);
+					}
+				} else {
+					uint64_t *doubleword_data = (uint64_t *)data;
+					for (size_t index = 0; index < SIZE / 8; index++) {
+						uint64_t doubleword = doubleword_data[index];
+						HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
+								0x0807F000 + (uint8_t)(index * 8),
+								doubleword);
+					}
+				}
+				toggleBankAndReset();
+				break;
+			}
         }
     /* USER CODE END WHILE */
 
