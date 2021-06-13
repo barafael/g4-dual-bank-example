@@ -20,6 +20,10 @@ When erasing/writing to the 'other' bank (the bank mapped at 0x08040000), care m
 
 When using many peripherals, many interrupts, the core sometimes goes into a state which I cannot explain when erasing bank 1 from bank 2. Doing a full bank erase works without problems in this case.
 
+#Challenge 4
+
+The chip errata state something about caches being corrupted during RWW(read-while-write). I'm pretty sure this is relevant here.
+
 # Implementation
 
 All relevant implementation is in main.c (except for the small but crucial change in the linker file).
