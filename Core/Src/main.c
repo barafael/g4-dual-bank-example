@@ -140,7 +140,7 @@ uint8_t getActiveBank() {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  SCB->VTOR = 0x08000000;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
